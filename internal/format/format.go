@@ -1,6 +1,7 @@
 package format
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -50,4 +51,17 @@ func renderINI(output Output) {
 		fmt.Printf("%s=\"%s\"\n", key, val)
 	}
 }
-func renderJSON(output Output) {}
+
+func renderJSON(output Output) {
+	jsonOutput := Output{}
+	for key, val := range output {
+		jsonKey := strings.ToLower(key)
+		jsonKey = strings.ReplaceAll(jsonKey, " ", "_")
+		jsonOutput[jsonKey] = val
+	}
+	b, err := json.Marshal(jsonOutput)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	fmt.Println(string(b))
+}
