@@ -1,1 +1,5 @@
-formatter: json
+changelog_filename: CHANGELOG.md
+formatter: txt
+log_level: debug
+root_package_enabled: true
+tag_prefix: ""

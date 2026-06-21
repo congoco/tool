@@ -3,6 +3,7 @@ package cli
 type Flags struct {
 	Persistent Persistent
 	Root       Root
+	Init       Init
 	Next       Next
 }
 
@@ -11,8 +12,10 @@ type Persistent struct {
 	Config    string
 }
 
-type Root struct {
-	Version bool
+type Root struct{}
+
+type Init struct {
+	Force bool
 }
 
 type Next struct {

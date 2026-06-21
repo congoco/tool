@@ -1,20 +1,17 @@
 package main
 
 import (
+	"os"
+
 	"congoco/internal/cli"
 	"congoco/internal/config"
 )
 
 func main() {
-	defaultCfg, err := config.New()
+	defaultCfg, err := config.New() // Full config load in internal/cli/service.go > PreRun
 	if err != nil {
 		panic(err)
 	}
-
-	// formatter, err := format.New(cfg.Formatter)
-	// if err != nil {
-	// 	panic(err)
-	// }
 
 	// log, err := logger.New(cfg.LogLevel)
 	// if err != nil {
@@ -25,6 +22,6 @@ func main() {
 	commands := cli.New(defaultCfg)
 	err = commands.RootCmd.Execute()
 	if err != nil {
-		panic(err)
+		os.Exit(1)
 	}
 }
