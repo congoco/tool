@@ -8,6 +8,7 @@ type Service struct {
 
 type ConfigRepository interface {
 	GetDefaults(*Parameters) (*Parameters, error)
+	GetVersion() (string, error)
 }
 
 func NewService() *Service {
@@ -26,4 +27,12 @@ func (s *Service) LoadParameters() (*Parameters, error) {
 	}
 
 	return params, nil
+}
+
+func (s *Service) LoadVersion() (string, error) {
+	version, err := s.repository.GetVersion()
+	if err != nil {
+		return "", err
+	}
+	return version, nil
 }

@@ -18,7 +18,7 @@ func main() {
 	}
 
 	cliLogger := log.With("package", "cli")
-	commands := cli.New(cliLogger)
+	commands := cli.New(cfg, cliLogger)
 	err = commands.RootCmd.Execute()
 	if err != nil {
 		panic(err)

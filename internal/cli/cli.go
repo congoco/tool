@@ -3,6 +3,8 @@ package cli
 import (
 	"log/slog"
 
+	"congoco/internal/config"
+
 	"github.com/spf13/cobra"
 )
 
@@ -13,26 +15,30 @@ type Cli struct {
 }
 
 type CliService interface {
+	Root(cmd *cobra.Command, args []string)
+	Validate(cmd *cobra.Command, args []string)
 	Current(cmd *cobra.Command, args []string)
 	Next(cmd *cobra.Command, args []string)
 }
 
-func New(logger *slog.Logger) *Cli {
+func New(cfg *config.Config, logger *slog.Logger) *Cli {
+	cliService := NewService(cfg)
+
+	cli := Cli{
+		log:     logger,
+		service: cliService,
+	}
+
 	rootCmd := &cobra.Command{
 		Use:   "congoco",
 		Short: "Conventional commits version manager",
 		Long:  "Tool for calculating and managing versions from conventional commits.",
+		Run:   cli.service.Root,
 	}
 
-	rootCmd.Flags().BoolP("version", "v", false, "congoco tool version")
+	rootCmd.Flags().BoolVarP(&cliService.Flags.Root.Version, "version", "v", false, "congoco version")
 
-	cliService := NewService()
-
-	cli := Cli{
-		log:     logger,
-		RootCmd: rootCmd,
-		service: cliService,
-	}
+	cli.RootCmd = rootCmd
 
 	cli.init()
 
@@ -40,6 +46,14 @@ func New(logger *slog.Logger) *Cli {
 }
 
 func (c *Cli) init() {
+	validateCmd := &cobra.Command{
+		Use:   "validate",
+		Short: "Validate Conventional Commits in repository",
+		Long:  "Check the commit history for compliance with the Conventional Commits specification.",
+		Run:   c.service.Validate,
+	}
+	c.RootCmd.AddCommand(validateCmd)
+
 	currentCmd := &cobra.Command{
 		Use:   "current",
 		Short: "Show current version in repository",
