@@ -1,14 +1,19 @@
 package config
 
+const CustomConfigPath string = "congoco.yaml"
+
 type Parameters struct {
-	LogLevel           string `yaml:"log_level"`
-	Formatter          string `yaml:"formatter"`
 	ChangelogFilename  string `yaml:"changelog_filename"`
+	CustomConfigPath   string
+	Formatter          string `yaml:"formatter"`
+	LogLevel           string `yaml:"log_level"`
 	RootPackageEnabled bool   `yaml:"root_package_enabled"`
 	TagPrefix          string `yaml:"tag_prefix"`
 }
 
 func NewParameters() *Parameters {
-	params := Parameters{}
+	params := Parameters{
+		CustomConfigPath: CustomConfigPath,
+	}
 	return &params
 }

@@ -6,7 +6,10 @@ type Flags struct {
 	Next       Next
 }
 
-type Persistent struct{}
+type Persistent struct {
+	Formatter string
+	Config    string
+}
 
 type Root struct {
 	Version bool

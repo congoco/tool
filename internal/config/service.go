@@ -20,7 +20,7 @@ func NewService() *Service {
 	return &s
 }
 
-func (s *Service) LoadParameters() (*Parameters, error) {
+func (s *Service) LoadDefaults() (*Parameters, error) {
 	params := NewParameters()
 
 	params, err := s.repository.GetDefaults(params)
@@ -28,7 +28,11 @@ func (s *Service) LoadParameters() (*Parameters, error) {
 		return nil, err
 	}
 
-	params, err = s.repository.GetCustomYaml(params)
+	return params, nil
+}
+
+func (s *Service) LoadCustomParameters(params *Parameters) (*Parameters, error) {
+	params, err := s.repository.GetCustomYaml(params)
 	if err != nil {
 		return nil, err
 	}

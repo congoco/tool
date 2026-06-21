@@ -3,12 +3,11 @@ package config
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"go.yaml.in/yaml/v4"
 )
-
-const customConfigFileName string = "congoco.yaml"
 
 //go:embed default.yaml
 var DefaultConfig []byte
@@ -47,16 +46,18 @@ func (r *Repository) GetDefaults(params *Parameters) (*Parameters, error) {
 }
 
 func (r *Repository) GetCustomYaml(params *Parameters) (*Parameters, error) {
-	_, err := os.Stat(customConfigFileName)
+	_, err := os.Stat(params.CustomConfigPath)
 	if err != nil && os.IsNotExist(err) {
+		fmt.Println(fmt.Errorf("No file"))
 		return params, nil
 	}
 
 	if err != nil && !os.IsNotExist(err) {
+		fmt.Println(fmt.Errorf("Wrong file"))
 		return nil, err
 	}
 
-	data, err := os.ReadFile(customConfigFileName)
+	data, err := os.ReadFile(params.CustomConfigPath)
 	if err != nil {
 		return nil, err
 	}

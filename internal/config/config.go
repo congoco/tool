@@ -3,32 +3,44 @@ package config
 const versionJsonFileName string = "version.json"
 
 type Config struct {
-	service ConfigService
+	Service ConfigService
 	*Parameters
 	Version string
 }
 
 type ConfigService interface {
-	LoadParameters() (*Parameters, error)
+	LoadDefaults() (*Parameters, error)
+	LoadCustomParameters(params *Parameters) (*Parameters, error)
 	LoadVersion() (string, error)
 }
 
 func New() (*Config, error) {
 	configService := NewService()
-	params, err := configService.LoadParameters()
-	if err != nil {
-		return nil, err
-	}
+
 	version, err := configService.LoadVersion()
 	if err != nil {
 		return nil, err
 	}
 
+	params, err := configService.LoadDefaults()
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := Config{
-		service:    configService,
+		Service:    configService,
 		Parameters: params,
 		Version:    version,
 	}
 
 	return &cfg, nil
+}
+
+func (c *Config) Reload() error {
+	var err error
+	c.Parameters, err = c.Service.LoadCustomParameters(c.Parameters)
+	if err != nil {
+		return err
+	}
+	return nil
 }

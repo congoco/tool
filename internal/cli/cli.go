@@ -16,28 +16,33 @@ type Cli struct {
 }
 
 type CliService interface {
+	PreRun(cmd *cobra.Command, args []string) error
 	Root(cmd *cobra.Command, args []string)
 	Validate(cmd *cobra.Command, args []string)
 	Current(cmd *cobra.Command, args []string)
 	Next(cmd *cobra.Command, args []string)
 }
 
-func New(cfg *config.Config, formatter *format.Formatter, logger *slog.Logger) *Cli {
-	cliService := NewService(cfg, formatter)
+func New(defaultCfg *config.Config) *Cli {
+	cliService := NewService(defaultCfg)
 
 	cli := Cli{
-		log:     logger,
+		// log:     logger,
 		service: cliService,
 	}
 
 	rootCmd := &cobra.Command{
-		Use:   "congoco",
-		Short: "Conventional commits version manager",
-		Long:  "Tool for calculating and managing versions from conventional commits.",
-		Run:   cli.service.Root,
+		Use:               "congoco [flags] [command]",
+		Short:             "Conventional commits version manager",
+		Long:              "Tool for calculating and managing versions from conventional commits.",
+		Run:               cli.service.Root,
+		PersistentPreRunE: cli.service.PreRun,
 	}
 
 	rootCmd.Flags().BoolVarP(&cliService.Flags.Root.Version, "version", "v", false, "congoco version")
+
+	rootCmd.PersistentFlags().StringVarP(&cliService.Flags.Persistent.Config, "config", "c", config.CustomConfigPath, "path to config file")
+	rootCmd.PersistentFlags().StringVarP(&cliService.Flags.Persistent.Formatter, "formatter", "f", string(format.TXT), "output formatter")
 
 	cli.RootCmd = rootCmd
 
