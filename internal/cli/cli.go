@@ -4,14 +4,15 @@ import (
 	"log/slog"
 
 	"congoco/internal/config"
+	"congoco/internal/format"
 
 	"github.com/spf13/cobra"
 )
 
 type Cli struct {
 	log     *slog.Logger
-	service CliService
 	RootCmd *cobra.Command
+	service CliService
 }
 
 type CliService interface {
@@ -21,8 +22,8 @@ type CliService interface {
 	Next(cmd *cobra.Command, args []string)
 }
 
-func New(cfg *config.Config, logger *slog.Logger) *Cli {
-	cliService := NewService(cfg)
+func New(cfg *config.Config, formatter *format.Formatter, logger *slog.Logger) *Cli {
+	cliService := NewService(cfg, formatter)
 
 	cli := Cli{
 		log:     logger,

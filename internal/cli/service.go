@@ -1,28 +1,32 @@
 package cli
 
 import (
-	"fmt"
-
 	"congoco/internal/config"
+	"congoco/internal/format"
 
 	"github.com/spf13/cobra"
 )
 
 type Service struct {
-	cfg   *config.Config
-	Flags Flags
+	formatter *format.Formatter
+	cfg       *config.Config
+	Flags     Flags
 }
 
-func NewService(cfg *config.Config) *Service {
+func NewService(cfg *config.Config, formatter *format.Formatter) *Service {
 	s := Service{
-		cfg: cfg,
+		formatter: formatter,
+		cfg:       cfg,
 	}
 	return &s
 }
 
 func (s *Service) Root(cmd *cobra.Command, args []string) {
 	if s.Flags.Root.Version {
-		fmt.Println(s.cfg.Version)
+		output := format.Output{
+			"Version": s.cfg.Version,
+		}
+		s.formatter.Render(output)
 		return
 	}
 	cmd.Help()

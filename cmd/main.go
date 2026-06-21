@@ -3,11 +3,17 @@ package main
 import (
 	"congoco/internal/cli"
 	"congoco/internal/config"
+	"congoco/internal/format"
 	"congoco/internal/logger"
 )
 
 func main() {
 	cfg, err := config.New()
+	if err != nil {
+		panic(err)
+	}
+
+	formatter, err := format.New(cfg.Formatter)
 	if err != nil {
 		panic(err)
 	}
@@ -18,7 +24,7 @@ func main() {
 	}
 
 	cliLogger := log.With("package", "cli")
-	commands := cli.New(cfg, cliLogger)
+	commands := cli.New(cfg, formatter, cliLogger)
 	err = commands.RootCmd.Execute()
 	if err != nil {
 		panic(err)
