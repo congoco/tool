@@ -8,6 +8,7 @@ type Service struct {
 
 type ConfigRepository interface {
 	GetDefaults(*Parameters) (*Parameters, error)
+	GetCustomYaml(*Parameters) (*Parameters, error)
 	GetVersion() (string, error)
 }
 
@@ -21,7 +22,13 @@ func NewService() *Service {
 
 func (s *Service) LoadParameters() (*Parameters, error) {
 	params := NewParameters()
+
 	params, err := s.repository.GetDefaults(params)
+	if err != nil {
+		return nil, err
+	}
+
+	params, err = s.repository.GetCustomYaml(params)
 	if err != nil {
 		return nil, err
 	}
