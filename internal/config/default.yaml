@@ -1,4 +1,5 @@
 ---
+changelog_filename: "CHANGELOG.md"
+log_level: "debug"
 root_package_enabled: true
 tag_prefix:
-changelog_filename: "CHANGELOG.md"

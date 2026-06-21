@@ -1,11 +1,14 @@
 package cli
 
 import (
+	"log/slog"
+
 	"github.com/spf13/cobra"
 )
 
 type Cli struct {
-	Service CliService
+	log     *slog.Logger
+	service CliService
 	RootCmd *cobra.Command
 }
 
@@ -14,7 +17,7 @@ type CliService interface {
 	Next(cmd *cobra.Command, args []string)
 }
 
-func New() *Cli {
+func New(logger *slog.Logger) *Cli {
 	rootCmd := &cobra.Command{
 		Use:   "congoco",
 		Short: "Conventional commits version manager",
@@ -26,8 +29,9 @@ func New() *Cli {
 	cliService := NewService()
 
 	cli := Cli{
+		log:     logger,
 		RootCmd: rootCmd,
-		Service: cliService,
+		service: cliService,
 	}
 
 	cli.init()
@@ -40,7 +44,7 @@ func (c *Cli) init() {
 		Use:   "current",
 		Short: "Show current version in repository",
 		Long:  "Current long",
-		Run:   c.Service.Current,
+		Run:   c.service.Current,
 	}
 	c.RootCmd.AddCommand(currentCmd)
 
@@ -48,7 +52,7 @@ func (c *Cli) init() {
 		Use:   "next",
 		Short: "Calculate next version",
 		Long:  "Next long",
-		Run:   c.Service.Next,
+		Run:   c.service.Next,
 	}
 	c.RootCmd.AddCommand(nextCmd)
 }
