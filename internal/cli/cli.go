@@ -18,6 +18,7 @@ type Cli struct {
 type CliService interface {
 	PreRun(cmd *cobra.Command, args []string) error
 	Root(cmd *cobra.Command, args []string)
+	Version(cmd *cobra.Command, args []string)
 	Validate(cmd *cobra.Command, args []string)
 	Current(cmd *cobra.Command, args []string)
 	Next(cmd *cobra.Command, args []string)
@@ -39,8 +40,6 @@ func New(defaultCfg *config.Config) *Cli {
 		PersistentPreRunE: cli.service.PreRun,
 	}
 
-	rootCmd.Flags().BoolVarP(&cliService.Flags.Root.Version, "version", "v", false, "congoco version")
-
 	rootCmd.PersistentFlags().StringVarP(&cliService.Flags.Persistent.Config, "config", "c", config.CustomConfigPath, "path to config file")
 	rootCmd.PersistentFlags().StringVarP(&cliService.Flags.Persistent.Formatter, "formatter", "f", string(format.TXT), "output formatter")
 
@@ -52,6 +51,14 @@ func New(defaultCfg *config.Config) *Cli {
 }
 
 func (c *Cli) init() {
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Show Congoco version",
+		Long:  "CVersion long",
+		Run:   c.service.Version,
+	}
+	c.RootCmd.AddCommand(versionCmd)
+
 	validateCmd := &cobra.Command{
 		Use:   "validate",
 		Short: "Validate Conventional Commits in repository",

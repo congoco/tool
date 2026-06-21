@@ -52,14 +52,14 @@ func (s *Service) PreRun(cmd *cobra.Command, args []string) error {
 }
 
 func (s *Service) Root(cmd *cobra.Command, args []string) {
-	if s.Flags.Root.Version {
-		output := format.Output{
-			"Version": s.cfg.Version,
-		}
-		s.formatter.Render(output)
-		return
-	}
 	cmd.Help()
+}
+
+func (s *Service) Version(cmd *cobra.Command, args []string) {
+	output := format.Output{
+		"Version": s.cfg.Version,
+	}
+	s.formatter.Render(output)
 }
 
 func (s *Service) Validate(cmd *cobra.Command, args []string) {
