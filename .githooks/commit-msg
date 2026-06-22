@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -ueo pipefail
 
 go run ../cmd validate -m "$1"
