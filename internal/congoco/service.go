@@ -1,16 +1,30 @@
 package congoco
 
-import "fmt"
-
-type Service struct{}
-
-func NewService() *Service {
-	s := Service{}
-	return &s
+type CongocoRepository interface {
+	GetVersion() (string, error)
 }
 
-func (s *Service) root() {
-	fmt.Println("Root")
+type Service struct {
+	repo CongocoRepository
+}
+
+func NewService() (*Service, error) {
+	repo, err := NewRepository()
+	if err != nil {
+		return nil, err
+	}
+	s := Service{
+		repo: repo,
+	}
+	return &s, nil
+}
+
+func (s *Service) LoadVersion() (string, error) {
+	version, err := s.repo.GetVersion()
+	if err != nil {
+		return "", err
+	}
+	return version, nil
 }
 
 // func (s *Service) ParseMessage(message string) (*CommitMessage, error) {

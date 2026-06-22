@@ -10,29 +10,12 @@ import (
 //go:embed default.yaml
 var DefaultConfig []byte
 
-//go:embed version.json
-var VersionJson []byte
-
-// type jsonFile struct {
-// 	Version string `json:"version"`
-// }
-
 type Repository struct{}
 
 func NewRepository() *Repository {
 	r := Repository{}
 	return &r
 }
-
-// func (r *Repository) GetVersion() (string, error) {
-// 	jsonFile := jsonFile{}
-
-// 	err := json.Unmarshal(VersionJson, &jsonFile)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return jsonFile.Version, nil
-// }
 
 func (r *Repository) GetDefaults(cfg *Config) (*Config, error) {
 	err := yaml.Unmarshal(DefaultConfig, cfg)
