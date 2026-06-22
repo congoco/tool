@@ -1,4 +1,4 @@
-package cli
+package congoco
 
 type Flags struct {
 	Persistent Persistent

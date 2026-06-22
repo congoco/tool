@@ -43,7 +43,7 @@ func (s *Service) PreRun(cmd *cobra.Command, flags Persistent) error {
 	}
 
 	if cmd.Flag("config").Changed {
-		s.cfg.CustomConfigPath = flags.Config
+		s.cfg.CustomConfigFilename = flags.Config
 	}
 
 	err := s.cfg.Reload()

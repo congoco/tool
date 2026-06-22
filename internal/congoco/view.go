@@ -1,4 +1,4 @@
-package format
+package congoco
 
 import (
 	"encoding/json"
@@ -6,45 +6,43 @@ import (
 	"strings"
 )
 
-type FormatterType string
+type ViewType string
 
 const (
-	TXT  FormatterType = "txt"
-	INI  FormatterType = "ini"
-	JSON FormatterType = "json"
+	TXT  ViewType = "txt"
+	INI  ViewType = "ini"
+	JSON ViewType = "json"
 )
 
 type Output map[string]any
 
-type Formatter struct {
-	Render func(text Output)
+type View struct {
+	Show func(output Output)
 }
 
-func New(formatterType string) (*Formatter, error) {
-	formatter := Formatter{}
-
-	ft := FormatterType(formatterType)
-	switch ft {
+func NewView(vType ViewType) (*View, error) {
+	v := View{}
+	vt := ViewType(vType)
+	switch vt {
 	case TXT:
-		formatter.Render = renderTXT
+		v.Show = showTxt
 	case INI:
-		formatter.Render = renderINI
+		v.Show = showIni
 	case JSON:
-		formatter.Render = renderJSON
+		v.Show = showJson
 	default:
-		return nil, fmt.Errorf("Unknown formatter type: %s", formatterType)
+		return nil, fmt.Errorf("Unknown formatter type: %s", vType)
 	}
-
-	return &formatter, nil
+	return &v, nil
 }
 
-func renderTXT(output Output) {
+func showTxt(output Output) {
 	for key, val := range output {
 		fmt.Printf("%s: %s\n", key, val)
 	}
 }
 
-func renderINI(output Output) {
+func showIni(output Output) {
 	for key, val := range output {
 		key = strings.ToUpper(key)
 		key = strings.ReplaceAll(key, " ", "_")
@@ -52,7 +50,7 @@ func renderINI(output Output) {
 	}
 }
 
-func renderJSON(output Output) {
+func showJson(output Output) {
 	jsonOutput := Output{}
 	for key, val := range output {
 		jsonKey := strings.ToLower(key)
