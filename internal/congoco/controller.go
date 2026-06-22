@@ -181,6 +181,7 @@ func (c *Controller) validate(cmd *cobra.Command, args []string) {
 		}
 		output["commit"] = commitMessage
 		c.View.Show(output)
+		return
 	}
 
 	invalidCommits, err := c.service.ValidateBranch()

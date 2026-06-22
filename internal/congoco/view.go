@@ -38,7 +38,18 @@ func NewView(vType ViewType) (*View, error) {
 
 func showTxt(output Output) {
 	for key, val := range output {
-		fmt.Printf("%s: %s\n", key, val)
+		switch v := val.(type) {
+		case string:
+			fmt.Printf("%s: %s\n", key, val)
+
+		case []string:
+			for _, s := range v {
+				fmt.Printf("%s\n", s)
+			}
+
+		default:
+			fmt.Printf("%s: %s\n", key, val)
+		}
 	}
 }
 
@@ -46,7 +57,17 @@ func showIni(output Output) {
 	for key, val := range output {
 		key = strings.ToUpper(key)
 		key = strings.ReplaceAll(key, " ", "_")
-		fmt.Printf("%s=\"%s\"\n", key, val)
+		switch v := val.(type) {
+		case string:
+			fmt.Printf("%s = %s\n", key, val)
+
+		case []string:
+			fmt.Printf("%s = %s\n", key, strings.Join(v, ";"))
+
+		default:
+			fmt.Printf("%s = %s\n", key, val)
+
+		}
 	}
 }
 

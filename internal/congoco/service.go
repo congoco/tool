@@ -88,7 +88,7 @@ func (s *Service) ValidateBranch() ([]string, error) {
 		if err != nil {
 			valid = false
 			invalidMessage, _, _ := strings.Cut(c.Message, "\n")
-			invalidCommit := fmt.Sprintf("%s>>%s", c.Hash.String()[:7], invalidMessage)
+			invalidCommit := fmt.Sprintf("%s \"%s\" by %s", c.Hash.String()[:7], invalidMessage, &c.Author)
 			invalidCommits = append(invalidCommits, invalidCommit)
 		}
 	}
