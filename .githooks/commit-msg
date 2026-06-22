@@ -2,4 +2,6 @@
 
 set -ueo pipefail
 
-go run ../cmd validate -m "$1"
+MESSAGE="$(cat "$1")"
+
+go run ./cmd validate -m "$MESSAGE"
