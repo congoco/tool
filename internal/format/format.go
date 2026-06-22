@@ -14,7 +14,7 @@ const (
 	JSON FormatterType = "json"
 )
 
-type Output map[string]string
+type Output map[string]any
 
 type Formatter struct {
 	Render func(text Output)

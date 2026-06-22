@@ -54,7 +54,7 @@ func (s *Service) PreRun(cmd *cobra.Command, flags Persistent) error {
 	if cmd.Flag("formatter").Changed {
 		s.cfg.Formatter = flags.Formatter
 	}
-	fmt.Printf("Formatter: %s\n", s.cfg.Formatter)
+
 	formatter, err := format.New(s.cfg.Formatter)
 	if err != nil {
 		panic(err)
@@ -83,8 +83,16 @@ func (s *Service) Init(params *config.Parameters, force bool) error {
 	return nil
 }
 
-func (s *Service) Validate() {
-	panic("<cli.Service.Validate> not implemented")
+func (s *Service) Validate(cmd *cobra.Command) error {
+	message := cmd.Flag("message").Value.String()
+	if cmd.Flag("message").Changed && message == "" {
+		return fmt.Errorf("Emty message")
+	}
+	// _, err := congoco.ParseMessage(message)
+	// if err != nil {
+	// 	return err
+	// }
+	return nil
 }
 
 func (s *Service) Current() {

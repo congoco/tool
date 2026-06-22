@@ -1,20 +1,27 @@
 package cli
 
 import (
+	"fmt"
 	"log/slog"
 
 	"congoco/internal/config"
+	"congoco/internal/congoco"
 	"congoco/internal/format"
 
 	"github.com/spf13/cobra"
 )
 
+type CongocoService interface {
+	ParseMessage(message string) (*congoco.CommitMessage, error)
+}
+
 type Cli struct {
-	cfg     *config.Config
-	log     *slog.Logger
-	service CliService
-	Flags   Flags
-	RootCmd *cobra.Command
+	cfg        *config.Config
+	cgcService CongocoService
+	flags      Flags
+	log        *slog.Logger
+	service    CliService
+	RootCmd    *cobra.Command
 }
 
 type CliService interface {
@@ -22,29 +29,33 @@ type CliService interface {
 	Root(cmd *cobra.Command)
 	Version()
 	Init(params *config.Parameters, force bool) error
-	Validate()
+	Validate(cmd *cobra.Command) error
 	Current()
 	Next()
 }
 
 func New(defaultCfg *config.Config) *Cli {
 	cliService := NewService(defaultCfg)
+	congocoService := congoco.NewService()
 
 	cli := Cli{
 		// log:     logger,
-		cfg:     defaultCfg,
-		service: cliService,
+		cfg:        defaultCfg,
+		cgcService: congocoService,
+		service:    cliService,
 	}
 
 	rootCmd := &cobra.Command{
-		Use:   "congoco [flags] [command]",
-		Short: "Conventional commits version manager",
-		Long:  "Tool for calculating and managing versions from conventional commits.",
+		Use:           "congoco [flags] [command]",
+		Short:         "Conventional commits version manager",
+		Long:          "Tool for calculating and managing versions from conventional commits.",
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			cli.service.Root(cmd)
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			err := cli.service.PreRun(cmd, cli.Flags.Persistent)
+			err := cli.service.PreRun(cmd, cli.flags.Persistent)
 			if err != nil {
 				panic(err)
 			}
@@ -52,8 +63,8 @@ func New(defaultCfg *config.Config) *Cli {
 		},
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&cli.Flags.Persistent.Config, "config", "c", config.CustomConfigPath, "path to config file")
-	rootCmd.PersistentFlags().StringVarP(&cli.Flags.Persistent.Formatter, "formatter", "f", string(format.TXT), "output formatter")
+	rootCmd.PersistentFlags().StringVarP(&cli.flags.Persistent.Config, "config", "c", config.CustomConfigPath, "path to config file")
+	rootCmd.PersistentFlags().StringVarP(&cli.flags.Persistent.Formatter, "formatter", "f", string(format.TXT), "output formatter")
 
 	cli.RootCmd = rootCmd
 
@@ -82,24 +93,41 @@ func (c *Cli) init() {
 			if err != nil {
 				return err
 			}
-			err = c.service.Init(params, c.Flags.Init.Force)
+			err = c.service.Init(params, c.flags.Init.Force)
 			if err != nil {
 				return err
 			}
 			return nil
 		},
 	}
-	initCmd.Flags().BoolVarP(&c.Flags.Init.Force, "overwrite", "w", false, "overwrite existed config")
+	initCmd.Flags().BoolVarP(&c.flags.Init.Force, "overwrite", "w", false, "overwrite existed config")
 	c.RootCmd.AddCommand(initCmd)
 
 	validateCmd := &cobra.Command{
 		Use:   "validate",
 		Short: "Validate Conventional Commits in repository",
-		Long:  "Check the commit history for compliance with the Conventional Commits specification.",
-		Run: func(cmd *cobra.Command, args []string) {
-			c.service.Validate()
+		Long:  "Check commits for compliance with the Conventional Commits specification.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			output := format.Output{
+				"valid": false,
+			}
+			// TODO: Move ALL of this to Service!
+			message := cmd.Flag("message").Value.String()
+			if cmd.Flag("message").Changed && message == "" {
+				output["error"] = "Empty message"
+				return fmt.Errorf("Emty message")
+			} else {
+				// result, err := c.cgcService.ParseMessage(message)
+				// if err != nil {
+				// 	return err
+				// }
+			}
+
+			err := c.service.Validate(cmd)
+			return err
 		},
 	}
+	validateCmd.Flags().StringVarP(&c.flags.Validate.Message, "message", "m", "", "validate commit message")
 	c.RootCmd.AddCommand(validateCmd)
 
 	currentCmd := &cobra.Command{

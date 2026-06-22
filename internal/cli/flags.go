@@ -5,6 +5,7 @@ type Flags struct {
 	Root       Root
 	Init       Init
 	Next       Next
+	Validate   Validate
 }
 
 type Persistent struct {
@@ -16,6 +17,10 @@ type Root struct{}
 
 type Init struct {
 	Force bool
+}
+
+type Validate struct {
+	Message string
 }
 
 type Next struct {
