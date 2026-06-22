@@ -10,6 +10,7 @@ import (
 
 type CongocoService interface {
 	LoadVersion() (string, error)
+	ParseMessage(message string) (*CommitMessage, error)
 }
 
 type ConfigService interface {
@@ -87,6 +88,17 @@ func (c *Controller) bootstrap() error {
 	initCmd.Flags().BoolVarP(&c.flags.Init.Force, "overwrite", "w", false, "overwrite an existing file")
 	c.RootCmd.AddCommand(initCmd)
 
+	// == // == //
+
+	validateCmd := &cobra.Command{
+		Use:   "validate",
+		Short: "Validate commits",
+		Long:  "Validate commits",
+		Run:   c.validate,
+	}
+	validateCmd.Flags().StringVarP(&c.flags.Validate.Message, "message", "m", "", "validate commit message (use single quotes)")
+	c.RootCmd.AddCommand(validateCmd)
+
 	return nil
 }
 
@@ -149,5 +161,24 @@ func (c *Controller) init(cmd *cobra.Command, args []string) {
 		output["Error"] = err.Error()
 		c.View.Show(output)
 		os.Exit(2)
+	}
+}
+
+func (c *Controller) validate(cmd *cobra.Command, args []string) {
+	output := Output{}
+	if cmd.Flag("message").Changed {
+		if len(c.flags.Validate.Message) < 1 {
+			output["Error"] = "Empty message"
+			c.View.Show(output)
+			os.Exit(2)
+		}
+		commitMessage, err := c.service.ParseMessage(c.flags.Validate.Message)
+		if err != nil {
+			output["Error"] = err.Error()
+			c.View.Show(output)
+			os.Exit(2)
+		}
+		output["commit"] = commitMessage
+		c.View.Show(output)
 	}
 }

@@ -1,5 +1,10 @@
 package congoco
 
+import (
+	"fmt"
+	"strings"
+)
+
 type CongocoRepository interface {
 	GetVersion() (string, error)
 }
@@ -27,33 +32,42 @@ func (s *Service) LoadVersion() (string, error) {
 	return version, nil
 }
 
-// func (s *Service) ParseMessage(message string) (*CommitMessage, error) {
-// 	cm := CommitMessage{}
-// 	subject, _, _ := strings.Cut(message, "\n")
-// 	subject = strings.TrimSpace(subject)
-// 	cm.Subject = subject
+func (s *Service) ParseMessage(message string) (*CommitMessage, error) {
+	header, _, _ := strings.Cut(message, "\n")
+	header = strings.TrimSpace(header)
 
-// 	header, _, found := strings.Cut(subject, ":")
-// 	if !found {
-// 		return nil, fmt.Errorf("Invalid commit message")
-// 	}
+	conv, subject, found := strings.Cut(header, ":")
+	if !found {
+		return nil, fmt.Errorf("No commit type")
+	}
 
-// 	header, _, found = strings.Cut(header, "!")
-// 	cm.BreakingChange = found
+	breakingChange := false
+	if strings.HasSuffix(conv, "!") {
+		breakingChange = true
+		conv = strings.TrimSuffix(conv, "!")
+	}
 
-// 	cTypeStr, scopeStr, found := strings.Cut(header, "(")
-// 	cType := CommitType(cTypeStr)
-// 	if !found {
-// 		cm.Type = cType
-// 		return &cm, nil
-// 	}
+	scope := ""
+	typeStr, scopeStr, scopeFound := strings.Cut(conv, "(")
+	if scopeFound {
+		afterScope := ""
+		scope, afterScope, found = strings.Cut(scopeStr, ")")
+		if !found || len(afterScope) > 0 {
+			return nil, fmt.Errorf("Invalid scope: %s", strings.TrimPrefix(conv, typeStr))
+		}
+	}
 
-// 	scope, _, found := strings.Cut(scopeStr, ")")
-// 	if !found {
-// 		return nil, fmt.Errorf("Invalid scope")
-// 	}
+	cType, err := ParseCommitType(typeStr)
+	if err != nil {
+		return nil, err
+	}
 
-// 	cm.Scope = scope
+	cm := CommitMessage{
+		BreakingChange: breakingChange,
+		Scope:          scope,
+		Subject:        subject,
+		Type:           cType,
+	}
 
-// 	return &cm, nil
-// }
+	return &cm, nil
+}

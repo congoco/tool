@@ -1,5 +1,9 @@
 package congoco
 
+import (
+	"fmt"
+)
+
 type CommitType string
 
 const (
@@ -29,13 +33,28 @@ var CommitTypeNames = map[CommitType]string{
 }
 
 type CommitMessage struct {
-	Type           CommitType
-	Scope          string
 	BreakingChange bool
+	Scope          string
 	Subject        string
+	Type           CommitType
 }
 
 type Commit struct {
 	CommitMessage
 	Files []string
+}
+
+func (t CommitType) Valid() bool {
+	_, ok := CommitTypeNames[t]
+	return ok
+}
+
+func ParseCommitType(s string) (CommitType, error) {
+	t := CommitType(s)
+
+	if !t.Valid() {
+		return "", fmt.Errorf("Unknown commit type: %s", s)
+	}
+
+	return t, nil
 }
