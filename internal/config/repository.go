@@ -2,6 +2,7 @@ package config
 
 import (
 	_ "embed"
+	"fmt"
 	"os"
 
 	"go.yaml.in/yaml/v4"
@@ -52,4 +53,30 @@ func (r *Repository) GetCustomYaml(cfg *Config, customYamlFile bool) (*Config, e
 	}
 
 	return cfg, nil
+}
+
+func (r *Repository) SaveConfig(cfg *Config, force bool) error {
+	_, err := os.Stat(cfg.CustomConfigFilename)
+	if err == nil && !force {
+		return fmt.Errorf("File %s already exists", cfg.CustomConfigFilename)
+	}
+
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(
+		cfg.CustomConfigFilename,
+		data,
+		0o644,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }

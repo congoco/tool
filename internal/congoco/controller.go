@@ -1,6 +1,8 @@
 package congoco
 
 import (
+	"os"
+
 	"congoco/internal/config"
 
 	"github.com/spf13/cobra"
@@ -10,12 +12,19 @@ type CongocoService interface {
 	LoadVersion() (string, error)
 }
 
+type ConfigService interface {
+	LoadDefaults(cfg *config.Config) (*config.Config, error)
+	LoadCustom(cfg *config.Config, customYamlFile bool) (*config.Config, error)
+	CreateConfigFile(configFilename string, force bool) error
+}
+
 type Controller struct {
-	cfg     *config.Config
-	flags   Flags
-	service CongocoService
-	view    *View
-	RootCmd *cobra.Command
+	cfg        *config.Config
+	cfgService ConfigService
+	flags      Flags
+	service    CongocoService
+	View       *View
+	RootCmd    *cobra.Command
 }
 
 func NewController() (*Controller, error) {
@@ -27,21 +36,22 @@ func NewController() (*Controller, error) {
 	}
 
 	c := Controller{
-		cfg:     cfg,
-		flags:   flags,
-		service: service,
-		view:    nil,
-		RootCmd: nil,
+		cfg:        cfg,
+		cfgService: nil,
+		flags:      flags,
+		service:    service,
+		RootCmd:    nil,
+		View:       nil,
 	}
 
-	err = c.init()
+	err = c.bootstrap()
 	if err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
-func (c *Controller) init() error {
+func (c *Controller) bootstrap() error {
 	rootCmd := &cobra.Command{
 		Use:               "congoco",
 		Short:             "Conventional commits version manager",
@@ -62,9 +72,20 @@ func (c *Controller) init() error {
 		Use:   "version",
 		Short: "Show congoco version",
 		Long:  "Show congoco version",
-		RunE:  c.version,
+		Run:   c.version,
 	}
 	c.RootCmd.AddCommand(versionCmd)
+
+	// == // == //
+
+	initCmd := &cobra.Command{
+		Use:   "init",
+		Short: "Create custom config file",
+		Long:  "Create custom config file",
+		Run:   c.init,
+	}
+	initCmd.Flags().BoolVarP(&c.flags.Init.Force, "overwrite", "w", false, "overwrite an existing file")
+	c.RootCmd.AddCommand(initCmd)
 
 	return nil
 }
@@ -74,10 +95,10 @@ func (c *Controller) preRun(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	cfgService := config.NewService()
+	c.cfgService = config.NewService()
 
 	var err error
-	c.cfg, err = cfgService.LoadDefaults(c.cfg)
+	c.cfg, err = c.cfgService.LoadDefaults(c.cfg)
 	if err != nil {
 		return err
 	}
@@ -87,7 +108,7 @@ func (c *Controller) preRun(cmd *cobra.Command, args []string) error {
 		c.cfg.CustomConfigFilename = c.flags.Persistent.Config
 	}
 
-	c.cfg, err = cfgService.LoadCustom(c.cfg, yamlFilenameOverwrited)
+	c.cfg, err = c.cfgService.LoadCustom(c.cfg, yamlFilenameOverwrited)
 	if err != nil {
 		return err
 	}
@@ -96,7 +117,7 @@ func (c *Controller) preRun(cmd *cobra.Command, args []string) error {
 		c.cfg.Formatter = c.flags.Persistent.Formatter
 	}
 
-	c.view, err = NewView(ViewType(c.cfg.Formatter))
+	c.View, err = NewView(ViewType(c.cfg.Formatter))
 	if err != nil {
 		return err
 	}
@@ -108,14 +129,25 @@ func (c *Controller) root(cmd *cobra.Command, args []string) {
 	cmd.Help()
 }
 
-func (c *Controller) version(cmd *cobra.Command, args []string) error {
+func (c *Controller) version(cmd *cobra.Command, args []string) {
+	output := Output{}
 	version, err := c.service.LoadVersion()
 	if err != nil {
-		return err
+		output["Error"] = err.Error()
+		c.View.Show(output)
+		os.Exit(2)
 	}
-	output := Output{
-		"Version": version,
+	output["Version"] = version
+	c.View.Show(output)
+}
+
+func (c *Controller) init(cmd *cobra.Command, args []string) {
+	output := Output{}
+	force := c.flags.Init.Force
+	err := c.cfgService.CreateConfigFile(c.cfg.CustomConfigFilename, force)
+	if err != nil {
+		output["Error"] = err.Error()
+		c.View.Show(output)
+		os.Exit(2)
 	}
-	c.view.Show(output)
-	return nil
 }
