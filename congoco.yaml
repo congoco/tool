@@ -1,0 +1,11 @@
+changelog_filename: CHANGELOG.md
+formatter: txt
+root_package_enabled: true
+tag_prefix: ""
+
+packages:
+  config:
+    path: internal/config
+
+  cmd:
+    path: cmd
