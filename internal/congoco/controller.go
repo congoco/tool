@@ -11,6 +11,7 @@ import (
 type CongocoService interface {
 	LoadVersion() (string, error)
 	ParseMessage(message string) (*CommitMessage, error)
+	ValidateBranch() ([]string, error)
 }
 
 type ConfigService interface {
@@ -180,5 +181,13 @@ func (c *Controller) validate(cmd *cobra.Command, args []string) {
 		}
 		output["commit"] = commitMessage
 		c.View.Show(output)
+	}
+
+	invalidCommits, err := c.service.ValidateBranch()
+	if err != nil {
+		output["Error"] = err.Error()
+		output["Invalid commits"] = invalidCommits
+		c.View.Show(output)
+		os.Exit(2)
 	}
 }

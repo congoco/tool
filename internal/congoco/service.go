@@ -3,10 +3,13 @@ package congoco
 import (
 	"fmt"
 	"strings"
+
+	"github.com/go-git/go-git/v6/plumbing/object"
 )
 
 type CongocoRepository interface {
 	GetVersion() (string, error)
+	GetCommits() ([]*object.Commit, error)
 }
 
 type Service struct {
@@ -70,4 +73,27 @@ func (s *Service) ParseMessage(message string) (*CommitMessage, error) {
 	}
 
 	return &cm, nil
+}
+
+func (s *Service) ValidateBranch() ([]string, error) {
+	repoCommits, err := s.repo.GetCommits()
+	if err != nil {
+		return nil, err
+	}
+
+	invalidCommits := make([]string, 0, len(repoCommits))
+	valid := true
+	for _, c := range repoCommits {
+		_, err := s.ParseMessage(c.Message)
+		if err != nil {
+			valid = false
+			invalidMessage, _, _ := strings.Cut(c.Message, "\n")
+			invalidCommit := fmt.Sprintf("%s>>%s", c.Hash.String()[:7], invalidMessage)
+			invalidCommits = append(invalidCommits, invalidCommit)
+		}
+	}
+	if !valid {
+		return invalidCommits, fmt.Errorf("Invalid commits in branch")
+	}
+	return nil, nil
 }
