@@ -2,6 +2,7 @@ package congoco
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"congoco/internal/config"
@@ -109,6 +110,8 @@ func (s *Service) GetPackageVersions(packages map[string]config.Package, cfg *co
 		return nil, err
 	}
 
+	slices.Reverse(tags)
+
 	packages[rootPackageName] = config.Package{}
 	versions := map[string]*Version{}
 
@@ -144,7 +147,11 @@ func (s *Service) parsePackageVersion(packageName string, tag *object.Tag, tagPr
 		return nil, fmt.Errorf("Not a package version tag")
 	}
 	str := strings.TrimPrefix(tag.Name, fmt.Sprintf("%s-", packageName))
-	version, err := VersionFromString(str, tagPrefix)
+	taggedCommit, err := tag.Commit()
+	if err != nil {
+		return nil, err
+	}
+	version, err := VersionFromString(taggedCommit.Hash.String()[:7], str, tagPrefix)
 	if err != nil {
 		return nil, err
 	}

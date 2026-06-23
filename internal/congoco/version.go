@@ -7,13 +7,14 @@ import (
 )
 
 type Version struct {
-	Major  int
-	Minor  int
-	Patch  int
-	Prefix string
+	CommitHash string
+	Major      int
+	Minor      int
+	Patch      int
+	Prefix     string
 }
 
-func VersionFromString(str string, tagPrefix string) (*Version, error) {
+func VersionFromString(hash, str, tagPrefix string) (*Version, error) {
 	if !strings.HasPrefix(str, tagPrefix) {
 		return nil, fmt.Errorf("Version tag without prefix")
 	}
@@ -40,10 +41,11 @@ func VersionFromString(str string, tagPrefix string) (*Version, error) {
 	}
 
 	v := Version{
-		Major:  major,
-		Minor:  minor,
-		Patch:  patch,
-		Prefix: tagPrefix,
+		CommitHash: hash,
+		Major:      major,
+		Minor:      minor,
+		Patch:      patch,
+		Prefix:     tagPrefix,
 	}
 	return &v, nil
 }
