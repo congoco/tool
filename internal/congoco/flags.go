@@ -1,28 +1,27 @@
 package congoco
 
 type Flags struct {
-	Persistent Persistent
-	Root       Root
-	Init       Init
-	Next       Next
-	Validate   Validate
+	Persistent PersistentFlags
+	Init       InitFlags
+	Validate   ValidateFlags
+	Changelog  ChangelogFlags
 }
 
-type Persistent struct {
+type PersistentFlags struct {
 	Formatter string
 	Config    string
 }
 
-type Root struct{}
-
-type Init struct {
+type InitFlags struct {
 	Force bool
 }
 
-type Validate struct {
+type ValidateFlags struct {
 	Message string
 }
 
-type Next struct {
-	Version bool
+type ChangelogFlags struct {
+	From    string
+	To      string
+	Invalid string
 }

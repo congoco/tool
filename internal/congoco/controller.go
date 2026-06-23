@@ -13,6 +13,7 @@ type CongocoService interface {
 	ParseMessage(message string) (*CommitMessage, error)
 	ValidateBranch() ([]string, error)
 	GetPackageVersions(packages map[string]config.Package, cfg *config.Config) (map[string]*Version, error)
+	BuildChangelog(from, to string) (*Changelog, error)
 }
 
 type ConfigService interface {
@@ -101,6 +102,17 @@ func (c *Controller) bootstrap() error {
 		Run:   c.current,
 	}
 	c.RootCmd.AddCommand(currentCmd)
+
+	changelogCmd := &cobra.Command{
+		Use:   "changelog",
+		Short: "Show changelog",
+		Long:  "Show changelog",
+		Run:   c.changelog,
+	}
+	changelogCmd.Flags().StringVarP(&c.flags.Changelog.From, "from", "f", "HEAD", "start changelog from [HEAD, tag name, commit hash]")
+	changelogCmd.Flags().StringVarP(&c.flags.Changelog.From, "to", "t", "", "finish changelog on [tag name, commit hash, INIT] (default \"last version tag\")")
+	changelogCmd.Flags().StringVarP(&c.flags.Changelog.Invalid, "invalid", "i", "fail", "invalid commits handling strategi [fail, ignore, other]")
+	c.RootCmd.AddCommand(changelogCmd)
 
 	return nil
 }
@@ -218,4 +230,13 @@ func (c *Controller) current(cmd *cobra.Command, args []string) {
 
 	output["packages"] = packages
 	c.View.Show(output)
+}
+
+func (c *Controller) changelog(cmd *cobra.Command, args []string) {
+	output := Output{}
+	_, err := c.service.BuildChangelog(c.flags.Changelog.From, c.flags.Changelog.To)
+	if err != nil {
+		output["Error"] = err.Error()
+		c.View.Show(output)
+	}
 }

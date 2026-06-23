@@ -158,3 +158,8 @@ func (s *Service) parsePackageVersion(packageName string, tag *object.Tag, tagPr
 
 	return version, nil
 }
+
+func (s *Service) BuildChangelog(from, to string) (*Changelog, error) {
+	cl := Changelog{}
+	return &cl, nil
+}
