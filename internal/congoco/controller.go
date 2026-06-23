@@ -65,11 +65,8 @@ func (c *Controller) bootstrap() error {
 		Run:               c.root,
 	}
 	rootCmd.PersistentFlags().StringVarP(&c.flags.Persistent.Config, "config", "c", c.cfg.CustomConfigFilename, "path to config file")
-	rootCmd.PersistentFlags().StringVarP(&c.flags.Persistent.Formatter, "formatter", "f", string(TXT), "output formatter")
-
+	rootCmd.PersistentFlags().StringVarP(&c.flags.Persistent.Formatter, "output", "o", string(TXT), "output format [txt, ini, json]")
 	c.RootCmd = rootCmd
-
-	// == // == //
 
 	versionCmd := &cobra.Command{
 		Use:   "version",
@@ -78,8 +75,6 @@ func (c *Controller) bootstrap() error {
 		Run:   c.version,
 	}
 	c.RootCmd.AddCommand(versionCmd)
-
-	// == // == //
 
 	initCmd := &cobra.Command{
 		Use:   "init",
@@ -90,8 +85,6 @@ func (c *Controller) bootstrap() error {
 	initCmd.Flags().BoolVarP(&c.flags.Init.Force, "overwrite", "w", false, "overwrite an existing file")
 	c.RootCmd.AddCommand(initCmd)
 
-	// == // == //
-
 	validateCmd := &cobra.Command{
 		Use:   "validate",
 		Short: "Validate commits",
@@ -100,8 +93,6 @@ func (c *Controller) bootstrap() error {
 	}
 	validateCmd.Flags().StringVarP(&c.flags.Validate.Message, "message", "m", "", "validate commit message (use single quotes)")
 	c.RootCmd.AddCommand(validateCmd)
-
-	// == // == //
 
 	currentCmd := &cobra.Command{
 		Use:   "current",
@@ -137,7 +128,7 @@ func (c *Controller) preRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if cmd.Flag("formatter").Changed {
+	if cmd.Flag("output").Changed {
 		c.cfg.Formatter = c.flags.Persistent.Formatter
 	}
 
@@ -215,9 +206,13 @@ func (c *Controller) current(cmd *cobra.Command, args []string) {
 	packages := make(map[string]map[string]string, len(versions))
 
 	for pckg, version := range versions {
+		tag := ""
+		if version.String() != "0.0.0" {
+			tag = version.Tag()
+		}
 		packages[pckg] = map[string]string{
 			"Version": version.String(),
-			"Tag":     version.Tag(),
+			"Tag":     tag,
 		}
 	}
 
