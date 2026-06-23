@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"strings"
 
+	"congoco/internal/config"
+
 	"github.com/go-git/go-git/v6/plumbing/object"
 )
+
+const rootPackageName string = "_root"
 
 type CongocoRepository interface {
 	GetVersion() (string, error)
 	GetCommits() ([]*object.Commit, error)
+	GetTags() ([]*object.Tag, error)
 }
 
 type Service struct {
@@ -96,4 +101,53 @@ func (s *Service) ValidateBranch() ([]string, error) {
 		return invalidCommits, fmt.Errorf("Invalid commits in branch")
 	}
 	return nil, nil
+}
+
+func (s *Service) GetPackageVersions(packages map[string]config.Package, cfg *config.Config) (map[string]*Version, error) {
+	tags, err := s.repo.GetTags()
+	if err != nil {
+		return nil, err
+	}
+
+	packages[rootPackageName] = config.Package{}
+	versions := map[string]*Version{}
+
+	for pckgName := range packages {
+		for _, tag := range tags {
+			pckgPrefix := pckgName
+			if pckgName == rootPackageName {
+				pckgPrefix = ""
+			}
+
+			version, err := s.parsePackageVersion(pckgPrefix, tag, cfg.TagPrefix)
+			if err == nil {
+				if pckgName == "" {
+					pckgName = rootPackageName
+				}
+				versions[pckgName] = version
+				break
+			}
+		}
+
+		if versions[pckgName] == nil {
+			versions[pckgName] = &Version{
+				Prefix: cfg.TagPrefix,
+			}
+		}
+	}
+
+	return versions, nil
+}
+
+func (s *Service) parsePackageVersion(packageName string, tag *object.Tag, tagPrefix string) (*Version, error) {
+	if !strings.HasPrefix(tag.Name, packageName) {
+		return nil, fmt.Errorf("Not a package version tag")
+	}
+	str := strings.TrimPrefix(tag.Name, fmt.Sprintf("%s-", packageName))
+	version, err := VersionFromString(str, tagPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	return version, nil
 }

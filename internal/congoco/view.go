@@ -47,6 +47,15 @@ func showTxt(output Output) {
 				fmt.Printf("%s\n", s)
 			}
 
+		case map[string]map[string]string:
+			fmt.Printf("%s:\n", key)
+			for mk, mv := range v {
+				fmt.Printf("\t%s\n", mk)
+				for mmk, mmv := range mv {
+					fmt.Printf("\t\t%s: %s\n", mmk, mmv)
+				}
+			}
+
 		default:
 			fmt.Printf("%s: %s\n", key, val)
 		}
@@ -63,6 +72,13 @@ func showIni(output Output) {
 
 		case []string:
 			fmt.Printf("%s = %s\n", key, strings.Join(v, ";"))
+
+		case map[string]map[string]string:
+			for mk, mv := range v {
+				for mmk, mmv := range mv {
+					fmt.Printf("%s_%s_%s = %s\n", key, strings.ToUpper(mk), strings.ToUpper(mmk), mmv)
+				}
+			}
 
 		default:
 			fmt.Printf("%s = %s\n", key, val)

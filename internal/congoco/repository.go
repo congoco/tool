@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/object"
 )
 
@@ -67,4 +68,30 @@ func (r *Repository) GetCommits() ([]*object.Commit, error) {
 		return nil, err
 	}
 	return commits, nil
+}
+
+func (r *Repository) GetTags() ([]*object.Tag, error) {
+	repoTags, err := r.Tags()
+	if err != nil {
+		return nil, err
+	}
+	tags := []*object.Tag{}
+	err = repoTags.ForEach(func(ref *plumbing.Reference) error {
+		obj, err := r.TagObject(ref.Hash())
+		switch err {
+		case nil:
+			// Tag object present
+			tags = append(tags, obj)
+		case plumbing.ErrObjectNotFound:
+			// Not a tag object
+		default:
+			// Some other error
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return tags, nil
 }

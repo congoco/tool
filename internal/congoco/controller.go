@@ -12,6 +12,7 @@ type CongocoService interface {
 	LoadVersion() (string, error)
 	ParseMessage(message string) (*CommitMessage, error)
 	ValidateBranch() ([]string, error)
+	GetPackageVersions(packages map[string]config.Package, cfg *config.Config) (map[string]*Version, error)
 }
 
 type ConfigService interface {
@@ -99,6 +100,16 @@ func (c *Controller) bootstrap() error {
 	}
 	validateCmd.Flags().StringVarP(&c.flags.Validate.Message, "message", "m", "", "validate commit message (use single quotes)")
 	c.RootCmd.AddCommand(validateCmd)
+
+	// == // == //
+
+	currentCmd := &cobra.Command{
+		Use:   "current",
+		Short: "Show current package versions",
+		Long:  "Scan the branch for version tags of all packages",
+		Run:   c.current,
+	}
+	c.RootCmd.AddCommand(currentCmd)
 
 	return nil
 }
@@ -191,4 +202,25 @@ func (c *Controller) validate(cmd *cobra.Command, args []string) {
 		c.View.Show(output)
 		os.Exit(2)
 	}
+}
+
+func (c *Controller) current(cmd *cobra.Command, args []string) {
+	output := Output{}
+	versions, err := c.service.GetPackageVersions(c.cfg.Packages, c.cfg)
+	if err != nil {
+		output["Error"] = err.Error()
+		c.View.Show(output)
+	}
+
+	packages := make(map[string]map[string]string, len(versions))
+
+	for pckg, version := range versions {
+		packages[pckg] = map[string]string{
+			"Version": version.String(),
+			"Tag":     version.Tag(),
+		}
+	}
+
+	output["packages"] = packages
+	c.View.Show(output)
 }

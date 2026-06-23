@@ -22,7 +22,15 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd",
-      "args": ["init", "--config", "aaa.yaml"]
+      "args": ["init"]
+    },
+    {
+      "name": "Current",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd",
+      "args": ["current"]
     }
   ]
 }
