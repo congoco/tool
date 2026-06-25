@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"congoco/internal/config"
+	"congoco/internal/flags"
 
 	"github.com/spf13/cobra"
 )
@@ -26,7 +27,7 @@ type ConfigService interface {
 type Controller struct {
 	cfg        *config.Config
 	cfgService ConfigService
-	flags      Flags
+	flags      flags.Flags
 	service    CongocoService
 	View       *View
 	RootCmd    *cobra.Command
@@ -34,7 +35,7 @@ type Controller struct {
 
 func NewController() (*Controller, error) {
 	cfg := config.NewConfig()
-	flags := Flags{}
+	flags := flags.Flags{}
 	service, err := NewService(cfg)
 	if err != nil {
 		return nil, err
@@ -66,8 +67,9 @@ func (c *Controller) bootstrap() error {
 		PersistentPreRunE: c.preRun,
 		Run:               c.root,
 	}
+	var formatterType flags.FormatterType = flags.TXT
 	rootCmd.PersistentFlags().StringVarP(&c.flags.Persistent.Config, "config", "c", c.cfg.CustomConfigFilename, "path to config file")
-	rootCmd.PersistentFlags().StringVarP(&c.flags.Persistent.Formatter, "output", "o", string(TXT), "output format [txt, ini, json]")
+	rootCmd.PersistentFlags().VarP(&formatterType, "formatter", "o", "output formatter [ini, json, txt]")
 	c.RootCmd = rootCmd
 
 	versionCmd := &cobra.Command{
@@ -110,10 +112,14 @@ func (c *Controller) bootstrap() error {
 		Long:  "Scan commits until previous version tag and calculate next Semantic Version",
 		Run:   c.next,
 	}
-	nextCmd.Flags().StringVarP(&c.flags.Next.Belong, "belong", "b", "all", "how to connect commit with package [all, scope, path]")
-	nextCmd.Flags().StringVarP(&c.flags.Next.Invalid, "invalid", "i", "fail", "invalid commits handling strategy [fail, ignore, other]")
-	nextCmd.Flags().BoolVarP(&c.flags.Next.NoChangelog, "changelog", "l", false, "create changelog")
-	nextCmd.Flags().BoolVarP(&c.flags.Next.NoVersionFileUpdate, "file-update", "u", false, "update version file")
+	var belongStrategy flags.BelongStrategy = flags.ALL
+	nextCmd.Flags().VarP(&belongStrategy, "belong", "b", "package matching strategy [all, scope, path]")
+
+	var invalidStrategy flags.InvalidCommitsStrategy = flags.FAIL
+	nextCmd.Flags().VarP(&invalidStrategy, "invalid", "i", "invalid commits handling strategy [fail, ignore, other]")
+
+	nextCmd.Flags().BoolVarP(&c.flags.Next.Changelog, "changelog", "l", false, "create changelog")
+	nextCmd.Flags().BoolVarP(&c.flags.Next.VersionFileUpdate, "file-update", "u", false, "update version file")
 	nextCmd.Flags().BoolVarP(&c.flags.Next.Commit, "commit", "m", false, "commit changes")
 	nextCmd.Flags().BoolVarP(&c.flags.Next.Push, "push", "p", false, "push changes (auto --commit)")
 	c.RootCmd.AddCommand(nextCmd)
@@ -159,7 +165,7 @@ func (c *Controller) preRun(cmd *cobra.Command, args []string) error {
 		c.cfg.Formatter = c.flags.Persistent.Formatter
 	}
 
-	c.View, err = NewView(FormatterType(c.cfg.Formatter))
+	c.View, err = NewView(flags.FormatterType(c.cfg.Formatter))
 	if err != nil {
 		return err
 	}
@@ -249,11 +255,13 @@ func (c *Controller) current(cmd *cobra.Command, args []string) {
 
 func (c *Controller) next(cmd *cobra.Command, args []string) {
 	output := Output{}
-	versions, err := c.service.CalculatePackagesVersions(c.flags.Next.Invalid, c.flags.Next.Belong)
+
+	versions, err := c.service.CalculatePackagesVersions(c.flags.Next.InvalidStrategy, c.flags.Next.BelongsStrategy)
 	if err != nil {
 		output["Error"] = err.Error()
 		c.View.Show(output)
 	}
+
 	packages := make(map[string]map[string]string, len(versions))
 
 	for pckgName, version := range versions {
