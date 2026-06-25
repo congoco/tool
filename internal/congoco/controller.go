@@ -12,8 +12,9 @@ type CongocoService interface {
 	LoadVersion() (string, error)
 	ParseMessage(message string) (*CommitMessage, error)
 	ValidateBranch() ([]string, error)
-	GetPackageVersions(packages map[string]config.Package, cfg *config.Config) (map[string]*Version, error)
-	BuildChangelog(from, to string) (*Changelog, error)
+	GetPackageVersions() (map[string]*Version, error)
+	CalculatePackagesVersions(invalidCommitsStrategy, belongCommitsStrategy string) (map[string]*Version, error)
+	// BuildChangelog(from, to string) (*Changelog, error)
 }
 
 type ConfigService interface {
@@ -34,7 +35,7 @@ type Controller struct {
 func NewController() (*Controller, error) {
 	cfg := config.NewConfig()
 	flags := Flags{}
-	service, err := NewService()
+	service, err := NewService(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +80,8 @@ func (c *Controller) bootstrap() error {
 
 	initCmd := &cobra.Command{
 		Use:   "init",
-		Short: "Create custom config file",
-		Long:  "Create custom config file",
+		Short: "Create user config file",
+		Long:  "Create user config file",
 		Run:   c.init,
 	}
 	initCmd.Flags().BoolVarP(&c.flags.Init.Force, "overwrite", "w", false, "overwrite an existing file")
@@ -88,8 +89,8 @@ func (c *Controller) bootstrap() error {
 
 	validateCmd := &cobra.Command{
 		Use:   "validate",
-		Short: "Validate commits",
-		Long:  "Validate commits",
+		Short: "Validate Conventional Commits",
+		Long:  "Validate Conventional Commits",
 		Run:   c.validate,
 	}
 	validateCmd.Flags().StringVarP(&c.flags.Validate.Message, "message", "m", "", "validate commit message (use single quotes)")
@@ -103,16 +104,30 @@ func (c *Controller) bootstrap() error {
 	}
 	c.RootCmd.AddCommand(currentCmd)
 
-	changelogCmd := &cobra.Command{
-		Use:   "changelog",
-		Short: "Show changelog",
-		Long:  "Show changelog",
-		Run:   c.changelog,
+	nextCmd := &cobra.Command{
+		Use:   "next",
+		Short: "Calculate next package versions",
+		Long:  "Scan commits until previous version tag and calculate next Semantic Version",
+		Run:   c.next,
 	}
-	changelogCmd.Flags().StringVarP(&c.flags.Changelog.From, "from", "f", "HEAD", "start changelog from [HEAD, tag name, commit hash]")
-	changelogCmd.Flags().StringVarP(&c.flags.Changelog.From, "to", "t", "", "finish changelog on [tag name, commit hash, INIT] (default \"last version tag\")")
-	changelogCmd.Flags().StringVarP(&c.flags.Changelog.Invalid, "invalid", "i", "fail", "invalid commits handling strategi [fail, ignore, other]")
-	c.RootCmd.AddCommand(changelogCmd)
+	nextCmd.Flags().StringVarP(&c.flags.Next.Belong, "belong", "b", "all", "how to connect commit with package [all, scope, path]")
+	nextCmd.Flags().StringVarP(&c.flags.Next.Invalid, "invalid", "i", "fail", "invalid commits handling strategy [fail, ignore, other]")
+	nextCmd.Flags().BoolVarP(&c.flags.Next.NoChangelog, "changelog", "l", false, "create changelog")
+	nextCmd.Flags().BoolVarP(&c.flags.Next.NoVersionFileUpdate, "file-update", "u", false, "update version file")
+	nextCmd.Flags().BoolVarP(&c.flags.Next.Commit, "commit", "m", false, "commit changes")
+	nextCmd.Flags().BoolVarP(&c.flags.Next.Push, "push", "p", false, "push changes (auto --commit)")
+	c.RootCmd.AddCommand(nextCmd)
+
+	// changelogCmd := &cobra.Command{
+	// 	Use:   "changelog",
+	// 	Short: "Show package changelogs",
+	// 	Long:  "Show package changelogs",
+	// 	Run:   c.changelog,
+	// }
+	// changelogCmd.Flags().StringVarP(&c.flags.Changelog.From, "from", "f", "HEAD", "start changelog from [HEAD, tag name, commit hash]")
+	// changelogCmd.Flags().StringVarP(&c.flags.Changelog.From, "to", "t", "", "finish changelog on [tag name, commit hash, INIT] (default \"last version tag\")")
+	// changelogCmd.Flags().StringVarP(&c.flags.Changelog.Invalid, "invalid", "i", "fail", "invalid commits handling strategy [fail, ignore, other]")
+	// c.RootCmd.AddCommand(changelogCmd)
 
 	return nil
 }
@@ -144,7 +159,7 @@ func (c *Controller) preRun(cmd *cobra.Command, args []string) error {
 		c.cfg.Formatter = c.flags.Persistent.Formatter
 	}
 
-	c.View, err = NewView(ViewType(c.cfg.Formatter))
+	c.View, err = NewView(FormatterType(c.cfg.Formatter))
 	if err != nil {
 		return err
 	}
@@ -209,7 +224,7 @@ func (c *Controller) validate(cmd *cobra.Command, args []string) {
 
 func (c *Controller) current(cmd *cobra.Command, args []string) {
 	output := Output{}
-	versions, err := c.service.GetPackageVersions(c.cfg.Packages, c.cfg)
+	versions, err := c.service.GetPackageVersions()
 	if err != nil {
 		output["Error"] = err.Error()
 		c.View.Show(output)
@@ -220,7 +235,7 @@ func (c *Controller) current(cmd *cobra.Command, args []string) {
 	for pckg, version := range versions {
 		tag := ""
 		if version.String() != "0.0.0" {
-			tag = version.Tag()
+			tag = version.Tag.Name
 		}
 		packages[pckg] = map[string]string{
 			"Version": version.String(),
@@ -232,11 +247,37 @@ func (c *Controller) current(cmd *cobra.Command, args []string) {
 	c.View.Show(output)
 }
 
-func (c *Controller) changelog(cmd *cobra.Command, args []string) {
+func (c *Controller) next(cmd *cobra.Command, args []string) {
 	output := Output{}
-	_, err := c.service.BuildChangelog(c.flags.Changelog.From, c.flags.Changelog.To)
+	versions, err := c.service.CalculatePackagesVersions(c.flags.Next.Invalid, c.flags.Next.Belong)
 	if err != nil {
 		output["Error"] = err.Error()
 		c.View.Show(output)
 	}
+	packages := make(map[string]map[string]string, len(versions))
+
+	for pckgName, version := range versions {
+		tag := ""
+
+		if version.String() != "0.0.0" {
+			tag = version.Tag.Name
+		}
+
+		packages[pckgName] = map[string]string{
+			"Version": version.String(),
+			"Tag":     tag,
+		}
+	}
+
+	output["packages"] = packages
+	c.View.Show(output)
 }
+
+// func (c *Controller) changelog(cmd *cobra.Command, args []string) {
+// 	output := Output{}
+// 	_, err := c.service.CalculatePackagesVersions(c.cfg)
+// 	if err != nil {
+// 		output["Error"] = err.Error()
+// 		c.View.Show(output)
+// 	}
+// }
