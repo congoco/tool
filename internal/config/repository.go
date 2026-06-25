@@ -2,7 +2,7 @@ package config
 
 import (
 	_ "embed"
-	"encoding/json"
+	"fmt"
 	"os"
 
 	"go.yaml.in/yaml/v4"
@@ -11,13 +11,6 @@ import (
 //go:embed default.yaml
 var DefaultConfig []byte
 
-//go:embed version.json
-var VersionJson []byte
-
-type jsonFile struct {
-	Version string `json:"version"`
-}
-
 type Repository struct{}
 
 func NewRepository() *Repository {
@@ -25,30 +18,23 @@ func NewRepository() *Repository {
 	return &r
 }
 
-func (r *Repository) GetVersion() (string, error) {
-	jsonFile := jsonFile{}
-
-	err := json.Unmarshal(VersionJson, &jsonFile)
-	if err != nil {
-		return "", err
-	}
-	return jsonFile.Version, nil
-}
-
-func (r *Repository) GetDefaults(params *Parameters) (*Parameters, error) {
-	err := yaml.Unmarshal(DefaultConfig, params)
+func (r *Repository) GetDefaults(cfg *Config) (*Config, error) {
+	err := yaml.Unmarshal(DefaultConfig, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return params, nil
+	return cfg, nil
 }
 
-func (r *Repository) GetCustomYaml(params *Parameters) (*Parameters, error) {
-	_, err := os.Stat(params.CustomConfigPath)
+func (r *Repository) GetCustomYaml(cfg *Config, customYamlFile bool) (*Config, error) {
+	_, err := os.Stat(cfg.CustomConfigFilename)
 	if err != nil && os.IsNotExist(err) {
+		if customYamlFile {
+			return nil, err
+		}
 		// fmt.Println(fmt.Errorf("No file"))
-		return params, nil
+		return cfg, nil
 	}
 
 	if err != nil && !os.IsNotExist(err) {
@@ -56,15 +42,41 @@ func (r *Repository) GetCustomYaml(params *Parameters) (*Parameters, error) {
 		return nil, err
 	}
 
-	data, err := os.ReadFile(params.CustomConfigPath)
+	data, err := os.ReadFile(cfg.CustomConfigFilename)
 	if err != nil {
 		return nil, err
 	}
 
-	err = yaml.Unmarshal(data, params)
+	err = yaml.Unmarshal(data, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return params, nil
+	return cfg, nil
+}
+
+func (r *Repository) SaveConfig(cfg *Config, force bool) error {
+	_, err := os.Stat(cfg.CustomConfigFilename)
+	if err == nil && !force {
+		return fmt.Errorf("File %s already exists", cfg.CustomConfigFilename)
+	}
+
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(
+		cfg.CustomConfigFilename,
+		data,
+		0o644,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }

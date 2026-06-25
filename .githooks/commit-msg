@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -ueo pipefail
+
+MESSAGE="$(cat "$1")"
+
+go run ./cmd validate -m "$MESSAGE"

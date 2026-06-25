@@ -1,27 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"congoco/internal/cli"
-	"congoco/internal/config"
+	"congoco/internal/congoco"
 )
 
 func main() {
-	defaultCfg, err := config.New() // Full config load in internal/cli/service.go > PreRun
+	cgcController, err := congoco.NewController()
 	if err != nil {
 		panic(err)
 	}
-
-	// log, err := logger.New(cfg.LogLevel)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// cliLogger := log.With("package", "cli")
-	commands := cli.New(defaultCfg)
-	err = commands.RootCmd.Execute()
+	err = cgcController.RootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		fmt.Println(err.Error())
+		os.Exit(2)
 	}
 }
