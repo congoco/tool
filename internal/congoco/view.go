@@ -4,14 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-)
 
-type ViewType string
-
-const (
-	TXT  ViewType = "txt"
-	INI  ViewType = "ini"
-	JSON ViewType = "json"
+	"congoco/internal/flags"
 )
 
 type Output map[string]any
@@ -20,18 +14,18 @@ type View struct {
 	Show func(output Output)
 }
 
-func NewView(vType ViewType) (*View, error) {
+func NewView(fType flags.FormatterType) (*View, error) {
 	v := View{}
-	vt := ViewType(vType)
-	switch vt {
-	case TXT:
+	ft := flags.FormatterType(fType)
+	switch ft {
+	case flags.TXT:
 		v.Show = showTxt
-	case INI:
+	case flags.INI:
 		v.Show = showIni
-	case JSON:
+	case flags.JSON:
 		v.Show = showJson
 	default:
-		return nil, fmt.Errorf("Unknown formatter type: %s", vType)
+		return nil, fmt.Errorf("Unknown formatter type: %s", fType)
 	}
 	return &v, nil
 }
@@ -57,7 +51,7 @@ func showTxt(output Output) {
 			}
 
 		default:
-			fmt.Printf("%s: %s\n", key, val)
+			fmt.Printf("%s: %v\n", key, val)
 		}
 	}
 }
@@ -81,7 +75,7 @@ func showIni(output Output) {
 			}
 
 		default:
-			fmt.Printf("%s = %s\n", key, val)
+			fmt.Printf("%s = %v\n", key, val)
 
 		}
 	}

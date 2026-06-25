@@ -161,7 +161,7 @@ func (c *Controller) preRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if cmd.Flag("output").Changed {
+	if cmd.Flag("formatter").Changed {
 		c.cfg.Formatter = c.flags.Persistent.Formatter
 	}
 

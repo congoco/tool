@@ -40,11 +40,11 @@ type CommitMessage struct {
 }
 
 type Commit struct {
-	CommitMessage
+	*CommitMessage
 	Files []string
 }
 
-func (t CommitType) Valid() bool {
+func (t CommitType) valid() bool {
 	_, ok := CommitTypeNames[t]
 	return ok
 }
@@ -52,7 +52,7 @@ func (t CommitType) Valid() bool {
 func ParseCommitType(s string) (CommitType, error) {
 	t := CommitType(s)
 
-	if !t.Valid() {
+	if !t.valid() {
 		return "", fmt.Errorf("Unknown commit type: %s", s)
 	}
 

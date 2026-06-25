@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/go-git/go-git/v6/plumbing/object"
 )
 
 type Version struct {
-	CommitHash string
-	Major      int
-	Minor      int
-	Patch      int
-	Prefix     string
+	Tag    *object.Tag
+	Major  int
+	Minor  int
+	Patch  int
+	Prefix string
 }
 
-func VersionFromString(hash, str, tagPrefix string) (*Version, error) {
+func ParseVersion(tag *object.Tag, str, tagPrefix string) (*Version, error) {
 	if !strings.HasPrefix(str, tagPrefix) {
 		return nil, fmt.Errorf("Version tag without prefix")
 	}
@@ -41,19 +43,15 @@ func VersionFromString(hash, str, tagPrefix string) (*Version, error) {
 	}
 
 	v := Version{
-		CommitHash: hash,
-		Major:      major,
-		Minor:      minor,
-		Patch:      patch,
-		Prefix:     tagPrefix,
+		Tag:    tag,
+		Major:  major,
+		Minor:  minor,
+		Patch:  patch,
+		Prefix: tagPrefix,
 	}
 	return &v, nil
 }
 
 func (v *Version) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
-}
-
-func (v *Version) Tag() string {
-	return fmt.Sprintf("%s%d.%d.%d", v.Prefix, v.Major, v.Minor, v.Patch)
 }

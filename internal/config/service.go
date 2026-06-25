@@ -1,7 +1,5 @@
 package config
 
-const rootPckgName string = "_pckg"
-
 type ConfigRepository interface {
 	GetDefaults(params *Config) (*Config, error)
 	GetCustomYaml(cfg *Config, customYamlFile bool) (*Config, error)
@@ -33,6 +31,26 @@ func (s *Service) LoadCustom(cfg *Config, customYamlFile bool) (*Config, error) 
 	cfg, err := s.repo.GetCustomYaml(cfg, customYamlFile)
 	if err != nil {
 		return nil, err
+	}
+
+	if cfg.Packages == nil {
+		cfg.Packages = make(map[string]Package)
+	}
+
+	if cfg.RootPackageEnabled {
+		cfg.Packages[cfg.RootPackageName] = Package{}
+	}
+
+	for _, pckg := range cfg.Packages {
+		if pckg.ChangelogFileName == "" {
+			pckg.ChangelogFileName = cfg.ChangelogFilename
+		}
+
+		if pckg.ChangelogPath == "" {
+			pckg.ChangelogPath = pckg.Path
+		}
+
+		pckg.Include = append(pckg.Include, pckg.Path)
 	}
 
 	return cfg, nil

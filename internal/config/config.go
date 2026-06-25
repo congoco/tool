@@ -3,6 +3,7 @@ package config
 const (
 	versionJsonFilename  string = "version.json"
 	customConfigFilename string = "congoco.yaml"
+	rootPackageName      string = "_root"
 )
 
 type Package struct {
@@ -18,6 +19,7 @@ type Config struct {
 	Formatter            string             `yaml:"formatter"`
 	Packages             map[string]Package `yaml:"packages"`
 	RootPackageEnabled   bool               `yaml:"root_package_enabled"`
+	RootPackageName      string             `yaml:"-"`
 	TagPrefix            string             `yaml:"tag_prefix"`
 	VersionJsonFilename  string             `yaml:"-"`
 }
@@ -25,6 +27,7 @@ type Config struct {
 func NewConfig() *Config {
 	c := Config{
 		CustomConfigFilename: customConfigFilename,
+		RootPackageName:      rootPackageName,
 		VersionJsonFilename:  versionJsonFilename,
 	}
 	return &c

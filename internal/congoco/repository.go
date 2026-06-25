@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"encoding/json"
 
+	"congoco/internal/config"
+
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/object"
@@ -17,10 +19,11 @@ type jsonFile struct {
 }
 
 type Repository struct {
+	cfg *config.Config
 	*git.Repository
 }
 
-func NewRepository() (*Repository, error) {
+func NewRepository(cfg *config.Config) (*Repository, error) {
 	repo, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{
 		DetectDotGit: true,
 	})
@@ -43,22 +46,22 @@ func (r *Repository) GetVersion() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return jsonFile.Version, nil
 }
 
-func (r *Repository) GetCommits() ([]*object.Commit, error) {
-	ref, err := r.Head()
-	if err != nil {
-		return nil, err
-	}
-
+func (r *Repository) GetCommits(from plumbing.Hash, to plumbing.Hash) ([]*object.Commit, error) {
 	repoCommits, err := r.Log(&git.LogOptions{
-		From: ref.Hash(),
+		From:  from,
+		Order: git.LogOrderDFSPostFirstParent,
+		To:    to,
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	commits := []*object.Commit{}
+
 	err = repoCommits.ForEach(func(repoCommit *object.Commit) error {
 		commits = append(commits, repoCommit)
 
@@ -67,6 +70,7 @@ func (r *Repository) GetCommits() ([]*object.Commit, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return commits, nil
 }
 
